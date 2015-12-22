@@ -1,7 +1,6 @@
 #ifndef EGO_ESTIMATOR_H
 #define EGO_ESTIMATOR_H
 
-#include <lms/datamanager.h>
 #include <lms/module.h>
 
 /**
