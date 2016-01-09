@@ -7,6 +7,12 @@ set(HEADERS
     "include/ego_estimator.h"
 )
 
-include_directories(include)
+include_directories(
+        include
+        /usr/local/include
+        /usr/include
+        /usr/local/include/eigen3
+        /usr/include/eigen3
+)
 add_library(ego_estimator MODULE ${SOURCES} ${HEADERS})
 target_link_libraries(ego_estimator PRIVATE lmscore)
