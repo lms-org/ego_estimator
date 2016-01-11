@@ -103,11 +103,11 @@ public:
         auto v = x.v();
         auto a = x.a();
         auto om = x.omega();
-        double dT = u.dt();
+        auto dT = u.dt();
 
-        if (om < 0.01) {
-            x_.x()      = x.x() + 0.5*dT*(2*v+a*dT)*cos(th);
-            x_.y()      = x.y() + 0.5*dT*(2*v+a*dT)*sin(th);
+        if (om < T(0.01)) {
+            x_.x()      = x.x() + T(0.5)*dT*(2*v+a*dT)*cos(th);
+            x_.y()      = x.y() + T(0.5)*dT*(2*v+a*dT)*sin(th);
         }
         else {
             x_.x()      = x.x() + 1/(om*om)*((v*om+a*om*dT)*sin(th+om*dT) + a*cos(th+om*dT) - v*om*sin(th) - a*cos(th));
