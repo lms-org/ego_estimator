@@ -3,6 +3,8 @@
 #include <sensor_utils/imu.h>
 #include <sensor_utils/odometer.h>
 
+#define GRAVITY T(9.81)
+
 bool EgoEstimator::initialize() {
     sensors = readChannel<sensor_utils::SensorContainer>("SENSORS");
     return true;
@@ -23,9 +25,14 @@ bool EgoEstimator::cycle() {
         s.setZero();
         filter.init(s);
 
-        // TODO: set proper covariance
         Kalman::Covariance<State<T>> cov;
-        cov.setIdentity();
+        cov.setZero();
+        cov(State<T>::X, State<T>::X) = config().get<T>("sys_var_x", 1);
+        cov(State<T>::Y, State<T>::Y) = config().get<T>("sys_var_y", 1);
+        cov(State<T>::A, State<T>::A) = config().get<T>("sys_var_a", 1);
+        cov(State<T>::V, State<T>::V) = config().get<T>("sys_var_v", 1);
+        cov(State<T>::THETA, State<T>::THETA) = config().get<T>("sys_var_theta", 1);
+        cov(State<T>::OMEGA, State<T>::OMEGA) = config().get<T>("sys_var_omega", 1);
         filter.setCovariance(cov);
 
         return true;
@@ -71,12 +78,12 @@ void EgoEstimator::computeMeasurement()
         currentTimestamp = imu->timestamp();
 
         omega = imu->gyroscope.z();
-        ax    = imu->accelerometer.x();
-        ay    = imu->accelerometer.y();
+        ax    = GRAVITY*imu->accelerometer.x();
+        ay    = GRAVITY*imu->accelerometer.y();
 
         omegaVar = imu->gyroscopeCovariance.zz();
-        axVar    = imu->accelerometerCovariance.xx();
-        ayVar    = imu->accelerometerCovariance.yy();
+        axVar    = GRAVITY*GRAVITY*imu->accelerometerCovariance.xx();
+        ayVar    = GRAVITY*GRAVITY*imu->accelerometerCovariance.yy();
     }
 
     if(!sensors->hasSensor("HALL")) {
@@ -151,4 +158,7 @@ void EgoEstimator::computeFilterStep()
     filter.predict(sys, u);
     // perform measurement update
     filter.update(mm, z);
+
+    logger.debug("stateEstimate") << std::endl << filter.getState();
+    logger.debug("stateCovariance") << std::endl << filter.getCovariance();
 }
