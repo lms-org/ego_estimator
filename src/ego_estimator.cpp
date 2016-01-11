@@ -56,6 +56,11 @@ void EgoEstimator::computeMeasurement()
     T omega = 0;
     size_t numVelocitySources = 0;
 
+    T axVar = 0;
+    T ayVar = 0;
+    T vVar = 0;
+    T omegaVar = 0;
+
     if(!sensors->hasSensor("IMU")) {
         logger.error("imu") << "MISSING IMU SENSOR!";
 
@@ -65,10 +70,13 @@ void EgoEstimator::computeMeasurement()
         auto imu = sensors->sensor<sensor_utils::IMU>("IMU");
         currentTimestamp = imu->timestamp();
 
-        // TODO: Set Covariances
         omega = imu->gyroscope.z();
         ax    = imu->accelerometer.x();
         ay    = imu->accelerometer.y();
+
+        omegaVar = imu->gyroscopeCovariance.zz();
+        axVar    = imu->accelerometerCovariance.xx();
+        ayVar    = imu->accelerometerCovariance.yy();
     }
 
     if(!sensors->hasSensor("HALL")) {
@@ -80,6 +88,8 @@ void EgoEstimator::computeMeasurement()
         // TODO: Set Covariances
         v += hall->velocity.x();
         numVelocitySources++;
+
+        vVar = hall->velocityCovariance.xx();
     }
 
     /*
@@ -117,6 +127,18 @@ void EgoEstimator::computeMeasurement()
     z.ax() = ax;
     z.ay() = ay;
     z.omega() = omega;
+
+    // Set measurement covariances
+    Kalman::Covariance< Measurement<T> > cov;
+    cov.setZero();
+    cov(Measurement<T>::AX,    Measurement<T>::AX)    = axVar;
+    cov(Measurement<T>::AY,    Measurement<T>::AY)    = ayVar;
+    cov(Measurement<T>::V,     Measurement<T>::V)     = vVar;
+    cov(Measurement<T>::OMEGA, Measurement<T>::OMEGA) = omegaVar;
+    mm.setCovariance(cov);
+
+    logger.debug("measurementVector") << std::endl << z;
+    logger.debug("measurementCovariance") << std::endl << mm.getCovariance();
 }
 
 void EgoEstimator::computeFilterStep()
