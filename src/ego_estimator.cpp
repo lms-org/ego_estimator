@@ -184,6 +184,13 @@ void EgoEstimator::computeFilterStep()
 
     // time since UKF was last called (parameter, masked as control input)
     auto delta = ( currentTimestamp - lastTimestamp );
+    if(delta < lms::Time::ZERO) {
+        logger.error("time") << "JUMPING BACKWARDS IN TIME!"
+                             << " last = " << lastTimestamp
+                             << " current = " << currentTimestamp
+                             << " delta = " << delta;
+        return;
+    }
     u.dt() = delta.toFloat();
 
     // predict state for current time-step using the kalman filter
