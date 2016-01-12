@@ -15,4 +15,4 @@ include_directories(
         /usr/include/eigen3
 )
 add_library(ego_estimator MODULE ${SOURCES} ${HEADERS})
-target_link_libraries(ego_estimator PRIVATE lmscore)
+target_link_libraries(ego_estimator PRIVATE lmscore math_lib sensor_utils)

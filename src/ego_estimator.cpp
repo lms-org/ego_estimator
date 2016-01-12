@@ -225,6 +225,8 @@ void EgoEstimator::computeFilterStep()
 
     logger.debug("delta") << u.dt();
 
+    auto previousState = filter.getState();
+
     // predict state for current time-step using the kalman filter
     filter.predict(sys, u);
     // perform measurement update
@@ -245,4 +247,9 @@ void EgoEstimator::computeFilterStep()
                  << state.a()
                  << std::endl;
     }
+
+    auto viewDir =lms::math::vertex2f(std::cos(state.theta()), std::sin(state.theta()));
+
+    car->updatePosition(lms::math::vertex2f(state.x(), state.y()), viewDir);
+    car->updateVelocity(state.v(), viewDir);
 }

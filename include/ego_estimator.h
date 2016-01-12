@@ -5,6 +5,7 @@
 
 #include <lms/module.h>
 #include <sensor_utils/sensor.h>
+#include <sensor_utils/car.h>
 
 #include <kalman/UnscentedKalmanFilter.hpp>
 #include "filter/measurement_model.h"
@@ -28,6 +29,7 @@ protected:
     void initFilter();
 protected:
     lms::ReadDataChannel<sensor_utils::SensorContainer> sensors;
+    lms::WriteDataChannel<sensor_utils::Car> car;
 
     Control<T> u;
     Measurement<T> z;
