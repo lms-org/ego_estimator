@@ -7,6 +7,7 @@
 
 bool EgoEstimator::initialize() {
     sensors = readChannel<sensor_utils::SensorContainer>("SENSORS");
+    car = writeChannel<sensor_utils::Car>("CAR");
 
     // Init Kalman Filter
     initFilter();
