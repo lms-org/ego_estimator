@@ -10,10 +10,29 @@ bool EgoEstimator::initialize() {
 
     // Init Kalman Filter
     initFilter();
+
+    // Debug logging
+    if( config().get<bool>("state_log") )
+    {
+        if(!isEnableSave()) {
+            logger.error() << "Command line option --enable-save was not specified";
+            return false;
+        }
+
+        stateLogEnabled = true;
+        stateLog.open( saveLogDir("ego_estimator") + "/state_log.csv" );
+        stateLog << "timestamp,x,y,theta,v,omega,a" << std::endl;
+    } else {
+        stateLogEnabled = false;
+    }
+
     return true;
 }
 
 bool EgoEstimator::deinitialize() {
+    if(stateLogEnabled) {
+        stateLog.close();
+    }
     return true;
 }
 
@@ -198,6 +217,19 @@ void EgoEstimator::computeFilterStep()
     // perform measurement update
     filter.update(mm, z);
 
-    logger.debug("stateEstimate") << std::endl << filter.getState();
+    auto state = filter.getState();
+
+    logger.debug("stateEstimate") << std::endl << state;
     logger.debug("stateCovariance") << std::endl << filter.getCovariance();
+
+    if(stateLogEnabled) {
+        stateLog << currentTimestamp.micros() << ","
+                 << state.x() << ","
+                 << state.y() << ","
+                 << state.theta() << ","
+                 << state.v() << ","
+                 << state.omega() << ","
+                 << state.a()
+                 << std::endl;
+    }
 }

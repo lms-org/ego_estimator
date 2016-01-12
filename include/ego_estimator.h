@@ -1,6 +1,8 @@
 #ifndef EGO_ESTIMATOR_H
 #define EGO_ESTIMATOR_H
 
+#include <fstream>
+
 #include <lms/module.h>
 #include <sensor_utils/sensor.h>
 
@@ -23,7 +25,7 @@ public:
 protected:
     void computeMeasurement();
     void computeFilterStep();
-
+    void initFilter();
 protected:
     lms::ReadDataChannel<sensor_utils::SensorContainer> sensors;
 
@@ -37,9 +39,9 @@ protected:
 
     lms::Time lastTimestamp;
     lms::Time currentTimestamp;
-    bool firstRun;
 
-    void initFilter();
+    std::ofstream stateLog;
+    bool stateLogEnabled;
 };
 
 #endif // EGO_ESTIMATOR_H
