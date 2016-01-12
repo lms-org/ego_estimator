@@ -18,6 +18,7 @@ bool EgoEstimator::cycle() {
     if(firstRun)
     {
         lastTimestamp = lms::Time::ZERO;
+        currentTimestamp = lms::Time::ZERO;
         firstRun = false;
 
         // Init kalman
@@ -37,8 +38,6 @@ bool EgoEstimator::cycle() {
 
         return true;
     }
-
-    currentTimestamp = lms::Time::ZERO;
 
     // Compute Measurement Update
     computeMeasurement();
@@ -75,7 +74,15 @@ void EgoEstimator::computeMeasurement()
         // TODO!!!
     } else {
         auto imu = sensors->sensor<sensor_utils::IMU>("IMU");
-        currentTimestamp = imu->timestamp();
+        auto imuTimestamp = imu->timestamp();
+
+        if( imuTimestamp <= lastTimestamp ) {
+            logger.warn("imu") << "No IMU measurement in current timestep";
+        }
+
+        if( imuTimestamp >= currentTimestamp ) {
+            currentTimestamp = imuTimestamp;
+        }
 
         omega = imu->gyroscope.z();
         ax    = GRAVITY*imu->accelerometer.x();
@@ -90,9 +97,16 @@ void EgoEstimator::computeMeasurement()
         logger.error("hall") << "MISSING HALL SENSOR!";
     } else {
         auto hall = sensors->sensor<sensor_utils::Odometer>("HALL");
-        currentTimestamp = hall->timestamp();
 
-        // TODO: Set Covariances
+        auto hallTimestamp = hall->timestamp();
+        if( hallTimestamp <= lastTimestamp ) {
+            logger.warn("hall") << "No Hall measurement in current timestep";
+        }
+
+        if( hallTimestamp >= currentTimestamp ) {
+            currentTimestamp = hallTimestamp;
+        }
+
         v += hall->velocity.x();
         numVelocitySources++;
 
