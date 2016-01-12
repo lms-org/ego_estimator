@@ -38,6 +38,8 @@ protected:
     lms::Time lastTimestamp;
     lms::Time currentTimestamp;
     bool firstRun;
+
+    void initFilter();
 };
 
 #endif // EGO_ESTIMATOR_H

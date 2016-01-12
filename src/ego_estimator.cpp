@@ -7,6 +7,9 @@
 
 bool EgoEstimator::initialize() {
     sensors = readChannel<sensor_utils::SensorContainer>("SENSORS");
+
+    // Init Kalman Filter
+    initFilter();
     return true;
 }
 
@@ -15,34 +18,10 @@ bool EgoEstimator::deinitialize() {
 }
 
 bool EgoEstimator::cycle() {
-    if(firstRun)
-    {
-        lastTimestamp = lms::Time::ZERO;
-        currentTimestamp = lms::Time::ZERO;
-        firstRun = false;
-
-        // Init kalman
-        State<T> s;
-        s.setZero();
-        filter.init(s);
-
-        Kalman::Covariance<State<T>> cov;
-        cov.setZero();
-        cov(State<T>::X, State<T>::X) = config().get<T>("sys_var_x", 1);
-        cov(State<T>::Y, State<T>::Y) = config().get<T>("sys_var_y", 1);
-        cov(State<T>::A, State<T>::A) = config().get<T>("sys_var_a", 1);
-        cov(State<T>::V, State<T>::V) = config().get<T>("sys_var_v", 1);
-        cov(State<T>::THETA, State<T>::THETA) = config().get<T>("sys_var_theta", 1);
-        cov(State<T>::OMEGA, State<T>::OMEGA) = config().get<T>("sys_var_omega", 1);
-        filter.setCovariance(cov);
-
-        return true;
-    }
-
     // Compute Measurement Update
     computeMeasurement();
 
-    // Compute kalman filter step
+    // Compute Kalman filter step
     computeFilterStep();
 
     // Update timestamp
@@ -52,6 +31,39 @@ bool EgoEstimator::cycle() {
     // TODO
 
     return true;
+}
+
+void EgoEstimator::initFilter()
+{
+    lastTimestamp = lms::Time::ZERO;
+    currentTimestamp = lms::Time::ZERO;
+
+    // Init kalman
+    State<T> s;
+    s.setZero();
+    filter.init(s);
+
+    // Set initial state covariance
+    Kalman::Covariance<State<T>> stateCov;
+    stateCov.setZero();
+    stateCov(State::X, State::X)          = config().get<T>("filter_init_var_x", 1);
+    stateCov(State::Y, State::Y)          = config().get<T>("filter_init_var_y", 1);
+    stateCov(State::A, State::A)          = config().get<T>("filter_init_var_a", 1);
+    stateCov(State::V, State::V)          = config().get<T>("filter_init_var_v", 1);
+    stateCov(State::THETA, State::THETA)  = config().get<T>("filter_init_var_theta", 1);
+    stateCov(State::OMEGA, State::OMEGA)  = config().get<T>("filter_init_var_omega", 1);
+    filter.setCovariance(stateCov);
+
+    // Set process noise covariance
+    Kalman::Covariance<State<T>> cov;
+    cov.setZero();
+    cov(State::X, State::X)           = config().get<T>("sys_var_x", 1);
+    cov(State::Y, State::Y)           = config().get<T>("sys_var_y", 1);
+    cov(State::A, State::A)           = config().get<T>("sys_var_a", 1);
+    cov(State::V, State::V)           = config().get<T>("sys_var_v", 1);
+    cov(State::THETA, State::THETA)   = config().get<T>("sys_var_theta", 1);
+    cov(State::OMEGA, State::OMEGA)   = config().get<T>("sys_var_omega", 1);
+    sys.setCovariance(cov);
 }
 
 void EgoEstimator::computeMeasurement()
@@ -164,6 +176,12 @@ void EgoEstimator::computeMeasurement()
 
 void EgoEstimator::computeFilterStep()
 {
+    if( currentTimestamp == lms::Time::ZERO || lastTimestamp == lms::Time::ZERO ) {
+        // No valid timestamps for prediction step
+        // -> ignore
+        return;
+    }
+
     // time since UKF was last called (parameter, masked as control input)
     auto delta = ( currentTimestamp - lastTimestamp );
     u.dt() = delta.toFloat();
