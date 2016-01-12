@@ -41,6 +41,7 @@ protected:
     lms::Time currentTimestamp;
 
     std::ofstream stateLog;
+    std::ofstream measurementLog;
     bool stateLogEnabled;
 };
 

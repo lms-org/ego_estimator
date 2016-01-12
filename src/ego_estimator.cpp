@@ -22,6 +22,9 @@ bool EgoEstimator::initialize() {
         stateLogEnabled = true;
         stateLog.open( saveLogDir("ego_estimator") + "/state_log.csv" );
         stateLog << "timestamp,x,y,theta,v,omega,a" << std::endl;
+
+        measurementLog.open( saveLogDir("ego_estimator") + "/measurement_log.csv" );
+        measurementLog << "timestamp,ax,ay,v,omega" << std::endl;
     } else {
         stateLogEnabled = false;
     }
@@ -116,7 +119,7 @@ void EgoEstimator::computeMeasurement()
         }
 
         omega = imu->gyroscope.z();
-        ax    = GRAVITY*imu->accelerometer.x();
+        ax    = -GRAVITY*imu->accelerometer.x();
         ay    = GRAVITY*imu->accelerometer.y();
 
         omegaVar = imu->gyroscopeCovariance.zz();
@@ -191,6 +194,14 @@ void EgoEstimator::computeMeasurement()
 
     logger.debug("measurementVector") << std::endl << z;
     logger.debug("measurementCovariance") << std::endl << mm.getCovariance();
+
+    if(stateLogEnabled) {
+        measurementLog << currentTimestamp.micros() << ","
+                        << ax << ","
+                        << ay << ","
+                        << v << ","
+                        << omega << std::endl;
+    }
 }
 
 void EgoEstimator::computeFilterStep()
@@ -211,6 +222,8 @@ void EgoEstimator::computeFilterStep()
         return;
     }
     u.dt() = delta.toFloat();
+
+    logger.debug("delta") << u.dt();
 
     // predict state for current time-step using the kalman filter
     filter.predict(sys, u);
