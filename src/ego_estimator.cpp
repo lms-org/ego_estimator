@@ -13,7 +13,7 @@ bool EgoEstimator::initialize() {
     initFilter();
 
     // Debug logging
-    if( config().get<bool>("state_log") )
+    if( config().get<bool>("state_log",false) )
     {
         if(!isEnableSave()) {
             logger.error() << "Command line option --enable-save was not specified";
@@ -89,8 +89,8 @@ void EgoEstimator::initFilter()
     sys.setCovariance(cov);
 }
 
-void EgoEstimator::computeMeasurement()
-{
+void EgoEstimator::computeMeasurement(){
+
     T v = 0;
     T ax = 0;
     T ay = 0;
@@ -102,11 +102,43 @@ void EgoEstimator::computeMeasurement()
     T vVar = 0;
     T omegaVar = 0;
 
-    if(!sensors->hasSensor("IMU")) {
-        logger.error("imu") << "MISSING IMU SENSOR!";
+    if(!sensors->hasSensor("HALL")) {
+        logger.warn("hall") << "MISSING HALL SENSOR!";
 
+        v = car->targetSpeed();
+        vVar = config().get<float>("backup_vVar",1);
+    } else {
+        auto hall = sensors->sensor<sensor_utils::Odometer>("HALL");
+
+        auto hallTimestamp = hall->timestamp();
+        if( hallTimestamp <= lastTimestamp ) {
+            logger.warn("hall") << "No Hall measurement in current timestep";
+        }
+
+        if( hallTimestamp >= currentTimestamp ) {
+            currentTimestamp = hallTimestamp;
+        }
+
+        v += hall->velocity.x();
+        numVelocitySources++;
+
+        vVar = hall->velocityCovariance.xx();
+    }
+
+    if(!sensors->hasSensor("IMU")) {
+        logger.warn("imu") << "MISSING IMU SENSOR!";
         // FALLBACK TO STEERING ANGLES FOR TURN RATE
-        // TODO!!!
+        float steeringFront = car->steeringFront();
+        float steeringRear = car->steeringRear();
+        float radstand = config().get<float>("radstand",0.26);
+        float dt = 0.01; //TODO
+        float distance = v*dt;
+        float angle = distance/radstand*sin(steeringFront-steeringRear)/cos(steeringRear);
+        omega = angle/dt;
+        omegaVar = config().get<float>("backup_omegaVar",1); //TODO set val
+        //we don't acc
+        axVar = 1;
+        ayVar = 1;
     } else {
         auto imu = sensors->sensor<sensor_utils::IMU>("IMU");
         auto imuTimestamp = imu->timestamp();
@@ -126,26 +158,6 @@ void EgoEstimator::computeMeasurement()
         omegaVar = imu->gyroscopeCovariance.zz();
         axVar    = GRAVITY*GRAVITY*imu->accelerometerCovariance.xx();
         ayVar    = GRAVITY*GRAVITY*imu->accelerometerCovariance.yy();
-    }
-
-    if(!sensors->hasSensor("HALL")) {
-        logger.error("hall") << "MISSING HALL SENSOR!";
-    } else {
-        auto hall = sensors->sensor<sensor_utils::Odometer>("HALL");
-
-        auto hallTimestamp = hall->timestamp();
-        if( hallTimestamp <= lastTimestamp ) {
-            logger.warn("hall") << "No Hall measurement in current timestep";
-        }
-
-        if( hallTimestamp >= currentTimestamp ) {
-            currentTimestamp = hallTimestamp;
-        }
-
-        v += hall->velocity.x();
-        numVelocitySources++;
-
-        vVar = hall->velocityCovariance.xx();
     }
 
     /*
