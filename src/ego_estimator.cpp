@@ -41,14 +41,13 @@ bool EgoEstimator::deinitialize() {
 }
 
 bool EgoEstimator::cycle() {
+    //compute the timestamp
+    computeTimeStamp();
     // Compute Measurement Update
     computeMeasurement();
 
     // Compute Kalman filter step
     computeFilterStep();
-
-    // Update timestamp
-    lastTimestamp = currentTimestamp;
 
     // Add current state estimate with timestamp to interpolation values
     // TODO
@@ -89,8 +88,28 @@ void EgoEstimator::initFilter()
     sys.setCovariance(cov);
 }
 
-void EgoEstimator::computeMeasurement(){
+void EgoEstimator::computeTimeStamp(){
+    //set current one to old one
+    lastTimestamp = currentTimestamp;
+    if(sensors->hasSensor("IMU")){
+        auto imu = sensors->sensor<sensor_utils::IMU>("IMU");
+        auto imuTimestamp = imu->timestamp();
+        if( imuTimestamp >= currentTimestamp ) {
+            currentTimestamp = imuTimestamp;
+        }
+    }else if(sensors->hasSensor("HALL")){
+        auto hall = sensors->sensor<sensor_utils::Odometer>("HALL");
+        auto hallTimestamp = hall->timestamp();
+        if( hallTimestamp >= currentTimestamp ) {
+            currentTimestamp = hallTimestamp;
+        }
+    }else{
+        //timestamps setzen, die elektronik schickt keine richtigen Daten
+        currentTimestamp = lms::Time::now();
+    }
+}
 
+void EgoEstimator::computeMeasurement(){
     T v = 0;
     T ax = 0;
     T ay = 0;
@@ -104,7 +123,6 @@ void EgoEstimator::computeMeasurement(){
 
     if(!sensors->hasSensor("HALL")) {
         logger.warn("hall") << "MISSING HALL SENSOR!";
-
         v = car->targetSpeed();
         vVar = config().get<float>("backup_vVar",1);
     } else {
@@ -113,12 +131,8 @@ void EgoEstimator::computeMeasurement(){
         auto hallTimestamp = hall->timestamp();
         if( hallTimestamp <= lastTimestamp ) {
             logger.warn("hall") << "No Hall measurement in current timestep";
+            //TODO error handling (may call !hasSensor code)
         }
-
-        if( hallTimestamp >= currentTimestamp ) {
-            currentTimestamp = hallTimestamp;
-        }
-
         v += hall->velocity.x();
         numVelocitySources++;
 
@@ -145,10 +159,7 @@ void EgoEstimator::computeMeasurement(){
 
         if( imuTimestamp <= lastTimestamp ) {
             logger.warn("imu") << "No IMU measurement in current timestep";
-        }
-
-        if( imuTimestamp >= currentTimestamp ) {
-            currentTimestamp = imuTimestamp;
+            //TODO error handling (may call !hasSensor code)
         }
 
         omega = imu->gyroscope.z();
@@ -219,11 +230,14 @@ void EgoEstimator::computeMeasurement(){
 
 void EgoEstimator::computeFilterStep()
 {
+
     if( currentTimestamp == lms::Time::ZERO || lastTimestamp == lms::Time::ZERO ) {
         // No valid timestamps for prediction step
         // -> ignore
+        logger.error("RETURN IT");
         return;
     }
+
 
     // time since UKF was last called (parameter, masked as control input)
     auto delta = ( currentTimestamp - lastTimestamp );
@@ -263,6 +277,7 @@ void EgoEstimator::computeFilterStep()
 
     auto viewDir =lms::math::vertex2f(std::cos(state.theta()), std::sin(state.theta()));
 
+    logger.error("STATE")<<state.x()<< " "<<state.y();
     car->updatePosition(lms::math::vertex2f(state.x(), state.y()), viewDir);
     car->updateVelocity(state.v(), viewDir);
 }

@@ -24,6 +24,7 @@ public:
     bool cycle() override;
 
 protected:
+    void computeTimeStamp();
     void computeMeasurement();
     void computeFilterStep();
     void initFilter();
