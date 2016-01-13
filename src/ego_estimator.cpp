@@ -239,7 +239,6 @@ void EgoEstimator::computeFilterStep()
     if( currentTimestamp == lms::Time::ZERO || lastTimestamp == lms::Time::ZERO ) {
         // No valid timestamps for prediction step
         // -> ignore
-        logger.error("RETURN IT");
         return;
     }
 
@@ -281,8 +280,6 @@ void EgoEstimator::computeFilterStep()
     }
 
     auto viewDir =lms::math::vertex2f(std::cos(state.theta()), std::sin(state.theta()));
-
-    logger.error("STATE")<<state.x()<< " "<<state.y();
     car->updatePosition(lms::math::vertex2f(state.x(), state.y()), viewDir);
     car->updateVelocity(state.v(), viewDir);
 }
