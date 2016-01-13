@@ -91,21 +91,26 @@ void EgoEstimator::initFilter()
 void EgoEstimator::computeTimeStamp(){
     //set current one to old one
     lastTimestamp = currentTimestamp;
+    bool invalid = true;
     if(sensors->hasSensor("IMU")){
         auto imu = sensors->sensor<sensor_utils::IMU>("IMU");
         auto imuTimestamp = imu->timestamp();
         if( imuTimestamp >= currentTimestamp ) {
             currentTimestamp = imuTimestamp;
         }
-    }else if(sensors->hasSensor("HALL")){
+        invalid = false;
+    }
+    if(sensors->hasSensor("HALL")){
         auto hall = sensors->sensor<sensor_utils::Odometer>("HALL");
         auto hallTimestamp = hall->timestamp();
         if( hallTimestamp >= currentTimestamp ) {
             currentTimestamp = hallTimestamp;
         }
-    }else{
+        invalid = false;
+    }
+    if(invalid){
         //timestamps setzen, die elektronik schickt keine richtigen Daten
-        currentTimestamp = lms::Time::now();
+        currentTimestamp = currentTimestamp+ lms::Time::fromMillis(config().get<int>("defaultStepInMs",10));
     }
 }
 
@@ -145,7 +150,7 @@ void EgoEstimator::computeMeasurement(){
         float steeringFront = car->steeringFront();
         float steeringRear = car->steeringRear();
         float radstand = config().get<float>("radstand",0.26);
-        float dt = 0.01; //TODO
+        float dt = (currentTimestamp-lastTimestamp).toFloat(); //TODO
         float distance = v*dt;
         float angle = distance/radstand*sin(steeringFront-steeringRear)/cos(steeringRear);
         omega = angle/dt;
