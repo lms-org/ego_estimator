@@ -107,11 +107,13 @@ public:
         auto om = x.omega();
         auto dT = u.dt();
 
-        if (om < T(0.01)) {
+        if (std::abs(om) < T(0.01))
+        {
             x_.x()      = x.x() + T(0.5)*dT*(2*v+a*dT)*cos(th);
             x_.y()      = x.y() + T(0.5)*dT*(2*v+a*dT)*sin(th);
         }
-        else {
+        else
+        {
             x_.x()      = x.x() + 1/(om*om)*((v*om+a*om*dT)*sin(th+om*dT) + a*cos(th+om*dT) - v*om*sin(th) - a*cos(th));
             x_.y()      = x.y() + 1/(om*om)*((-v*om-a*om*dT)*cos(th+om*dT) + a*sin(th+om*dT) + v*om*cos(th) - a*sin(th));
         }
