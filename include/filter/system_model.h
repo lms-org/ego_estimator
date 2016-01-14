@@ -3,6 +3,8 @@
 
 #include <kalman/SystemModel.hpp>
 
+namespace CTRA {
+
 /**
  * @brief System state vector-type for CTRA motion model
  *
@@ -123,5 +125,7 @@ public:
         return x_;
     }
 };
+
+} // namespace CTRA
 
 #endif

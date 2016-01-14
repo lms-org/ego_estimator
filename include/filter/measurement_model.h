@@ -4,6 +4,8 @@
 #include <kalman/MeasurementModel.hpp>
 #include "filter/system_model.h"
 
+namespace CTRA {
+
 /**
  * @brief Measurement vector measuring the acceleration in x- and y-direction and the turn rate
  *
@@ -82,5 +84,6 @@ public:
 
 };
 
+} // namespace CTRA
 
 #endif

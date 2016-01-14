@@ -61,30 +61,30 @@ void EgoEstimator::initFilter()
     currentTimestamp = lms::Time::ZERO;
 
     // Init kalman
-    State<T> s;
+    State s;
     s.setZero();
     filter.init(s);
 
     // Set initial state covariance
-    Kalman::Covariance<State<T>> stateCov;
+    Kalman::Covariance<State> stateCov;
     stateCov.setZero();
-    stateCov(State<T>::X, State<T>::X)          = config().get<T>("filter_init_var_x", 1);
-    stateCov(State<T>::Y, State<T>::Y)          = config().get<T>("filter_init_var_y", 1);
-    stateCov(State<T>::A, State<T>::A)          = config().get<T>("filter_init_var_a", 1);
-    stateCov(State<T>::V, State<T>::V)          = config().get<T>("filter_init_var_v", 1);
-    stateCov(State<T>::THETA, State<T>::THETA)  = config().get<T>("filter_init_var_theta", 1);
-    stateCov(State<T>::OMEGA, State<T>::OMEGA)  = config().get<T>("filter_init_var_omega", 1);
+    stateCov(State::X, State::X)          = config().get<T>("filter_init_var_x", 1);
+    stateCov(State::Y, State::Y)          = config().get<T>("filter_init_var_y", 1);
+    stateCov(State::A, State::A)          = config().get<T>("filter_init_var_a", 1);
+    stateCov(State::V, State::V)          = config().get<T>("filter_init_var_v", 1);
+    stateCov(State::THETA, State::THETA)  = config().get<T>("filter_init_var_theta", 1);
+    stateCov(State::OMEGA, State::OMEGA)  = config().get<T>("filter_init_var_omega", 1);
     filter.setCovariance(stateCov);
 
     // Set process noise covariance
-    Kalman::Covariance<State<T>> cov;
+    Kalman::Covariance<State> cov;
     cov.setZero();
-    cov(State<T>::X, State<T>::X)           = config().get<T>("sys_var_x", 1);
-    cov(State<T>::Y, State<T>::Y)           = config().get<T>("sys_var_y", 1);
-    cov(State<T>::A, State<T>::A)           = config().get<T>("sys_var_a", 1);
-    cov(State<T>::V, State<T>::V)           = config().get<T>("sys_var_v", 1);
-    cov(State<T>::THETA, State<T>::THETA)   = config().get<T>("sys_var_theta", 1);
-    cov(State<T>::OMEGA, State<T>::OMEGA)   = config().get<T>("sys_var_omega", 1);
+    cov(State::X, State::X)           = config().get<T>("sys_var_x", 1);
+    cov(State::Y, State::Y)           = config().get<T>("sys_var_y", 1);
+    cov(State::A, State::A)           = config().get<T>("sys_var_a", 1);
+    cov(State::V, State::V)           = config().get<T>("sys_var_v", 1);
+    cov(State::THETA, State::THETA)   = config().get<T>("sys_var_theta", 1);
+    cov(State::OMEGA, State::OMEGA)   = config().get<T>("sys_var_omega", 1);
     sys.setCovariance(cov);
 }
 
@@ -213,12 +213,12 @@ void EgoEstimator::computeMeasurement(){
     z.omega() = omega;
 
     // Set measurement covariances
-    Kalman::Covariance< Measurement<T> > cov;
+    Kalman::Covariance< Measurement > cov;
     cov.setZero();
-    cov(Measurement<T>::AX,    Measurement<T>::AX)    = axVar;
-    cov(Measurement<T>::AY,    Measurement<T>::AY)    = ayVar;
-    cov(Measurement<T>::V,     Measurement<T>::V)     = vVar;
-    cov(Measurement<T>::OMEGA, Measurement<T>::OMEGA) = omegaVar;
+    cov(Measurement::AX,    Measurement::AX)    = axVar;
+    cov(Measurement::AY,    Measurement::AY)    = ayVar;
+    cov(Measurement::V,     Measurement::V)     = vVar;
+    cov(Measurement::OMEGA, Measurement::OMEGA) = omegaVar;
     mm.setCovariance(cov);
 
     logger.debug("measurementVector") << std::endl << z;
