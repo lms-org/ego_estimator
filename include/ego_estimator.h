@@ -8,6 +8,7 @@
 #include <sensor_utils/car.h>
 
 #include <kalman/UnscentedKalmanFilter.hpp>
+#include <kalman/ExtendedKalmanFilter.hpp>
 #include "filter/measurement_model.h"
 #include "filter/system_model.h"
 
@@ -24,7 +25,7 @@ public:
 
     typedef CTRA::MeasurementModel<T> MeasurementModel;
     typedef CTRA::SystemModel<T> SystemModel;
-    typedef Kalman::UnscentedKalmanFilter<State> Filter;
+    typedef Kalman::ExtendedKalmanFilter<State> Filter;
 public:
     bool initialize() override;
     bool deinitialize() override;
