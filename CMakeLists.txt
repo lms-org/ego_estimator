@@ -5,6 +5,8 @@ set(SOURCES
 
 set(HEADERS
     "include/ego_estimator.h"
+    "include/filter/measurement_model.h"
+    "include/filter/system_model.h"
 )
 
 include_directories(
