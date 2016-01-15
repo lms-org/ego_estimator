@@ -119,7 +119,6 @@ void EgoEstimator::computeMeasurement(){
     T ax = 0;
     T ay = 0;
     T omega = 0;
-    size_t numVelocitySources = 0;
 
     T axVar = 0;
     T ayVar = 0;
@@ -138,9 +137,7 @@ void EgoEstimator::computeMeasurement(){
             logger.warn("hall") << "No Hall measurement in current timestep";
             //TODO error handling (may call !hasSensor code)
         }
-        v += hall->velocity.x();
-        numVelocitySources++;
-
+        v = hall->velocity.x();
         vVar = hall->velocityCovariance.xx();
     }
 
@@ -167,9 +164,10 @@ void EgoEstimator::computeMeasurement(){
             //TODO error handling (may call !hasSensor code)
         }
 
+        // TODO: remove acceleration orientation hack
         omega = imu->gyroscope.z();
         ax    = -GRAVITY*imu->accelerometer.x();
-        ay    = GRAVITY*imu->accelerometer.y();
+        ay    = -GRAVITY*imu->accelerometer.y();
 
         omegaVar = imu->gyroscopeCovariance.zz();
         axVar    = GRAVITY*GRAVITY*imu->accelerometerCovariance.xx();
@@ -184,8 +182,7 @@ void EgoEstimator::computeMeasurement(){
         auto hall = sensors->sensor<sensor_utils::Odometer>("MOUSE_FRONT");
 
         // TODO: Set Covariances
-        v += hall->velocity.x();
-        numVelocitySources++;
+        vMotion = hall->velocity.x();
     }
 
     if(!sensors->hasSensor("MOUSE_REAR")) {
@@ -194,17 +191,9 @@ void EgoEstimator::computeMeasurement(){
         auto hall = sensors->sensor<sensor_utils::Odometer>("MOUSE_REAR");
 
         // TODO: Set Covariances
-        v += hall->velocity.x();
-        numVelocitySources++;
+        vMotion = hall->velocity.x();
     }
      */
-
-    if( numVelocitySources > 0 ) {
-        v /= numVelocitySources;
-    } else {
-        // Set covariacne to very high
-        // TODO
-    }
 
     // Set actual measurement vector
     z.v() = v;
