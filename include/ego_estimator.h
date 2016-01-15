@@ -36,6 +36,7 @@ protected:
     void computeMeasurement();
     void computeFilterStep();
     void initFilter();
+    void updateCarState();
 protected:
     lms::ReadDataChannel<sensor_utils::SensorContainer> sensors;
     lms::WriteDataChannel<sensor_utils::Car> car;

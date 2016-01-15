@@ -49,6 +49,9 @@ bool EgoEstimator::cycle() {
     // Compute Kalman filter step
     computeFilterStep();
 
+    // Update car state
+    updateCarState();
+
     // Add current state estimate with timestamp to interpolation values
     // TODO
 
@@ -252,7 +255,7 @@ void EgoEstimator::computeFilterStep()
     // perform measurement update
     filter.update(mm, z);
 
-    auto state = filter.getState();
+    const auto& state = filter.getState();
 
     logger.debug("stateEstimate") << std::endl << state;
     logger.debug("stateCovariance") << std::endl << filter.getCovariance();
@@ -267,8 +270,13 @@ void EgoEstimator::computeFilterStep()
                  << state.a()
                  << std::endl;
     }
+}
 
+void EgoEstimator::updateCarState()
+{
+    const auto& state = filter.getState();
     auto viewDir =lms::math::vertex2f(std::cos(state.theta()), std::sin(state.theta()));
     car->updatePosition(lms::math::vertex2f(state.x(), state.y()), viewDir);
     car->updateVelocity(state.v(), viewDir);
+    car->updateTurnRate(state.omega());
 }
