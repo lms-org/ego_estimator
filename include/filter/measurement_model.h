@@ -1,8 +1,10 @@
 #ifndef CAR_TRACKER_FILTER_MEASUREMENT_MODEL_H
 #define CAR_TRACKER_FILTER_MEASUREMENT_MODEL_H
 
-#include <kalman/MeasurementModel.hpp>
+#include <kalman/LinearizedMeasurementModel.hpp>
 #include "filter/system_model.h"
+
+namespace CTRA {
 
 /**
  * @brief Measurement vector measuring the acceleration in x- and y-direction and the turn rate
@@ -49,7 +51,7 @@ public:
  *                       coveriace square root (SquareRootBase))
  */
 template<typename T, template<class> class CovarianceBase = Kalman::StandardBase>
-class MeasurementModel : public Kalman::MeasurementModel<State<T>, Measurement<T>, CovarianceBase>
+class MeasurementModel : public Kalman::LinearizedMeasurementModel<State<T>, Measurement<T>, CovarianceBase>
 {
 public:
     //! State type shortcut definition
@@ -80,7 +82,19 @@ public:
         return measurement;
     }
 
+protected:
+    void updateJacobians( const S& x )
+    {
+        this->H.setZero();
+
+        this->H(M::AX, S::A) = 1;
+        this->H(M::AY, S::V) = x.omega();
+        this->H(M::AY, S::OMEGA) = x.v();
+        this->H(M::V, S::V) = 1;
+        this->H(M::OMEGA, S::OMEGA) = 1;
+    }
 };
 
+} // namespace CTRA
 
 #endif

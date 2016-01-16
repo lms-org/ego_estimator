@@ -8,6 +8,7 @@
 #include <sensor_utils/car.h>
 
 #include <kalman/UnscentedKalmanFilter.hpp>
+#include <kalman/ExtendedKalmanFilter.hpp>
 #include "filter/measurement_model.h"
 #include "filter/system_model.h"
 
@@ -17,7 +18,14 @@
 class EgoEstimator : public lms::Module {
 public:
     typedef float T;
-    typedef Kalman::UnscentedKalmanFilter<State <T>> Filter;
+
+    typedef CTRA::State<T> State;
+    typedef CTRA::Control<T> Control;
+    typedef CTRA::Measurement<T> Measurement;
+
+    typedef CTRA::MeasurementModel<T> MeasurementModel;
+    typedef CTRA::SystemModel<T> SystemModel;
+    typedef Kalman::ExtendedKalmanFilter<State> Filter;
 public:
     bool initialize() override;
     bool deinitialize() override;
@@ -28,15 +36,16 @@ protected:
     void computeMeasurement();
     void computeFilterStep();
     void initFilter();
+    void updateCarState();
 protected:
     lms::ReadDataChannel<sensor_utils::SensorContainer> sensors;
     lms::WriteDataChannel<sensor_utils::Car> car;
 
-    Control<T> u;
-    Measurement<T> z;
+    Control u;
+    Measurement z;
 
-    SystemModel<T> sys; // System model
-    MeasurementModel<T> mm; // Measurement model
+    SystemModel sys;
+    MeasurementModel mm;
 
     Filter filter;
 

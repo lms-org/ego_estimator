@@ -49,6 +49,9 @@ bool EgoEstimator::cycle() {
     // Compute Kalman filter step
     computeFilterStep();
 
+    // Update car state
+    updateCarState();
+
     // Add current state estimate with timestamp to interpolation values
     // TODO
 
@@ -61,30 +64,30 @@ void EgoEstimator::initFilter()
     currentTimestamp = lms::Time::ZERO;
 
     // Init kalman
-    State<T> s;
+    State s;
     s.setZero();
     filter.init(s);
 
     // Set initial state covariance
-    Kalman::Covariance<State<T>> stateCov;
+    Kalman::Covariance<State> stateCov;
     stateCov.setZero();
-    stateCov(State<T>::X, State<T>::X)          = config().get<T>("filter_init_var_x", 1);
-    stateCov(State<T>::Y, State<T>::Y)          = config().get<T>("filter_init_var_y", 1);
-    stateCov(State<T>::A, State<T>::A)          = config().get<T>("filter_init_var_a", 1);
-    stateCov(State<T>::V, State<T>::V)          = config().get<T>("filter_init_var_v", 1);
-    stateCov(State<T>::THETA, State<T>::THETA)  = config().get<T>("filter_init_var_theta", 1);
-    stateCov(State<T>::OMEGA, State<T>::OMEGA)  = config().get<T>("filter_init_var_omega", 1);
+    stateCov(State::X, State::X)          = config().get<T>("filter_init_var_x", 1);
+    stateCov(State::Y, State::Y)          = config().get<T>("filter_init_var_y", 1);
+    stateCov(State::A, State::A)          = config().get<T>("filter_init_var_a", 1);
+    stateCov(State::V, State::V)          = config().get<T>("filter_init_var_v", 1);
+    stateCov(State::THETA, State::THETA)  = config().get<T>("filter_init_var_theta", 1);
+    stateCov(State::OMEGA, State::OMEGA)  = config().get<T>("filter_init_var_omega", 1);
     filter.setCovariance(stateCov);
 
     // Set process noise covariance
-    Kalman::Covariance<State<T>> cov;
+    Kalman::Covariance<State> cov;
     cov.setZero();
-    cov(State<T>::X, State<T>::X)           = config().get<T>("sys_var_x", 1);
-    cov(State<T>::Y, State<T>::Y)           = config().get<T>("sys_var_y", 1);
-    cov(State<T>::A, State<T>::A)           = config().get<T>("sys_var_a", 1);
-    cov(State<T>::V, State<T>::V)           = config().get<T>("sys_var_v", 1);
-    cov(State<T>::THETA, State<T>::THETA)   = config().get<T>("sys_var_theta", 1);
-    cov(State<T>::OMEGA, State<T>::OMEGA)   = config().get<T>("sys_var_omega", 1);
+    cov(State::X, State::X)           = config().get<T>("sys_var_x", 1);
+    cov(State::Y, State::Y)           = config().get<T>("sys_var_y", 1);
+    cov(State::A, State::A)           = config().get<T>("sys_var_a", 1);
+    cov(State::V, State::V)           = config().get<T>("sys_var_v", 1);
+    cov(State::THETA, State::THETA)   = config().get<T>("sys_var_theta", 1);
+    cov(State::OMEGA, State::OMEGA)   = config().get<T>("sys_var_omega", 1);
     sys.setCovariance(cov);
 }
 
@@ -119,7 +122,6 @@ void EgoEstimator::computeMeasurement(){
     T ax = 0;
     T ay = 0;
     T omega = 0;
-    size_t numVelocitySources = 0;
 
     T axVar = 0;
     T ayVar = 0;
@@ -139,9 +141,7 @@ void EgoEstimator::computeMeasurement(){
             logger.warn("hall") << "No Hall measurement in current timestep";
             //TODO error handling (may call !hasSensor code)
         }
-        v += hall->velocity.x();
-        numVelocitySources++;
-
+        v = hall->velocity.x();
         vVar = hall->velocityCovariance.xx();
     }
 
@@ -168,8 +168,9 @@ void EgoEstimator::computeMeasurement(){
             //TODO error handling (may call !hasSensor code)
         }
 
+        // TODO: remove acceleration orientation hack
         omega = imu->gyroscope.z();
-        ax    = -GRAVITY*imu->accelerometer.x();
+        ax    = GRAVITY*imu->accelerometer.x();
         ay    = GRAVITY*imu->accelerometer.y();
 
         omegaVar = imu->gyroscopeCovariance.zz();
@@ -185,8 +186,7 @@ void EgoEstimator::computeMeasurement(){
         auto hall = sensors->sensor<sensor_utils::Odometer>("MOUSE_FRONT");
 
         // TODO: Set Covariances
-        v += hall->velocity.x();
-        numVelocitySources++;
+        vMotion = hall->velocity.x();
     }
 
     if(!sensors->hasSensor("MOUSE_REAR")) {
@@ -195,17 +195,9 @@ void EgoEstimator::computeMeasurement(){
         auto hall = sensors->sensor<sensor_utils::Odometer>("MOUSE_REAR");
 
         // TODO: Set Covariances
-        v += hall->velocity.x();
-        numVelocitySources++;
+        vMotion = hall->velocity.x();
     }
      */
-
-    if( numVelocitySources > 0 ) {
-        v /= numVelocitySources;
-    } else {
-        // Set covariacne to very high
-        // TODO
-    }
 
     // Set actual measurement vector
     z.v() = v;
@@ -214,12 +206,12 @@ void EgoEstimator::computeMeasurement(){
     z.omega() = omega;
 
     // Set measurement covariances
-    Kalman::Covariance< Measurement<T> > cov;
+    Kalman::Covariance< Measurement > cov;
     cov.setZero();
-    cov(Measurement<T>::AX,    Measurement<T>::AX)    = axVar;
-    cov(Measurement<T>::AY,    Measurement<T>::AY)    = ayVar;
-    cov(Measurement<T>::V,     Measurement<T>::V)     = vVar;
-    cov(Measurement<T>::OMEGA, Measurement<T>::OMEGA) = omegaVar;
+    cov(Measurement::AX,    Measurement::AX)    = axVar;
+    cov(Measurement::AY,    Measurement::AY)    = ayVar;
+    cov(Measurement::V,     Measurement::V)     = vVar;
+    cov(Measurement::OMEGA, Measurement::OMEGA) = omegaVar;
     mm.setCovariance(cov);
 
     logger.debug("measurementVector") << std::endl << z;
@@ -262,7 +254,7 @@ void EgoEstimator::computeFilterStep(){
     // perform measurement update
     filter.update(mm, z);
 
-    auto state = filter.getState();
+    const auto& state = filter.getState();
 
     logger.debug("stateEstimate") << std::endl << state;
     logger.debug("stateCovariance") << std::endl << filter.getCovariance();
@@ -277,8 +269,13 @@ void EgoEstimator::computeFilterStep(){
                  << state.a()
                  << std::endl;
     }
+}
 
+void EgoEstimator::updateCarState()
+{
+    const auto& state = filter.getState();
     auto viewDir =lms::math::vertex2f(std::cos(state.theta()), std::sin(state.theta()));
     car->updatePosition(lms::math::vertex2f(state.x(), state.y()), viewDir);
     car->updateVelocity(state.v(), viewDir);
+    car->updateTurnRate(state.omega());
 }

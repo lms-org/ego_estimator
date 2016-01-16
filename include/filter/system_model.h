@@ -1,7 +1,9 @@
 #ifndef CAR_TRACKER_FILTER_SYSTEM_MODEL_H
 #define CAR_TRACKER_FILTER_SYSTEM_MODEL_H
 
-#include <kalman/SystemModel.hpp>
+#include <kalman/LinearizedSystemModel.hpp>
+
+namespace CTRA {
 
 /**
  * @brief System state vector-type for CTRA motion model
@@ -73,7 +75,7 @@ public:
  *                       coveriace square root (SquareRootBase))
  */
 template<typename T, template<class> class CovarianceBase = Kalman::StandardBase>
-class SystemModel : public Kalman::SystemModel<State<T>, Control<T>, CovarianceBase>
+class SystemModel : public Kalman::LinearizedSystemModel<State<T>, Control<T>, CovarianceBase>
 {
 public:
     //! State type shortcut definition
@@ -105,23 +107,94 @@ public:
         auto om = x.omega();
         auto dT = u.dt();
 
-        if (om < T(0.01)) {
-            x_.x()      = x.x() + T(0.5)*dT*(2*v+a*dT)*cos(th);
-            x_.y()      = x.y() + T(0.5)*dT*(2*v+a*dT)*sin(th);
+        auto cosTh = std::cos(th);
+        auto sinTh = std::sin(th);
+
+        if (std::abs(om) < T(0.01))
+        {
+            x_.x() = x.x() + T(0.5)*dT*(2*v+a*dT)*cosTh;
+            x_.y() = x.y() + T(0.5)*dT*(2*v+a*dT)*sinTh;
         }
-        else {
-            x_.x()      = x.x() + 1/(om*om)*((v*om+a*om*dT)*sin(th+om*dT) + a*cos(th+om*dT) - v*om*sin(th) - a*cos(th));
-            x_.y()      = x.y() + 1/(om*om)*((-v*om-a*om*dT)*cos(th+om*dT) + a*sin(th+om*dT) + v*om*cos(th) - a*sin(th));
+        else
+        {
+            auto cosThOmT = std::cos(th + om*dT);
+            auto sinThOmT = std::sin(th + om*dT);
+
+            x_.x() = x.x() + 1/(om*om)*((v*om+a*om*dT)*sinThOmT + a*cosThOmT - v*om*sinTh - a*cosTh);
+            x_.y() = x.y() + 1/(om*om)*((-v*om-a*om*dT)*cosThOmT + a*sinThOmT + v*om*cosTh - a*sinTh);
         }
 
-        x_.theta()  = th + om*dT;
-        x_.v()      = v + a*dT;
-        x_.a()      = a + 0;
-        x_.omega()  = om + 0;
+        x_.theta() = th + om*dT;
+        x_.v()     = v + a*dT;
+        x_.a()     = a + 0;
+        x_.omega() = om + 0;
 
         // Return transitioned state vector
         return x_;
     }
+protected:
+    void updateJacobians( const S& x, const C& u )
+    {
+        this->F.setIdentity();
+
+        auto th = x.theta();
+        auto v = x.v();
+        auto a = x.a();
+        auto om = x.omega();
+        auto dT = u.dt();
+
+        auto cosTh = std::cos(th);
+        auto sinTh = std::sin(th);
+
+        if (std::abs(om) < T(0.01))
+        {
+            auto pTheta = T(0.5)*dT*(2*v+a*dT);
+            auto pOmega = 1/T(6) * dT*dT * (3*v+2*a*dT);
+            auto pA = T(0.5) * dT*dT;
+
+            this->F( S::X, S::THETA ) = pTheta * -sinTh;
+            this->F( S::X, S::V )     = dT * cosTh;
+            this->F( S::Y, S::OMEGA ) = pOmega * -sinTh;
+            this->F( S::X, S::A )     = pA * cosTh;
+
+            this->F( S::Y, S::THETA ) = pTheta * cosTh;
+            this->F( S::Y, S::V )     = dT * sinTh;
+            this->F( S::Y, S::OMEGA ) = pOmega * cosTh;
+            this->F( S::Y, S::A )     = pA * sinTh;
+        }
+        else
+        {
+            auto cosThOmT = std::cos(th + om*dT);
+            auto sinThOmT = std::sin(th + om*dT);
+
+            auto omSqrInv = 1/(om*om);
+
+            this->F( S::X, S::THETA ) = omSqrInv * ( a*om*dT*cosThOmT + v*om*(cosThOmT-cosTh) - a*(sinThOmT-sinTh) );
+            this->F( S::X, S::V )     = 1/om * ( sinThOmT - sinTh );
+            this->F( S::X, S::OMEGA ) = omSqrInv * ( (a*dT+v)*(om*dT)*cosThOmT - (T(2)*a*dT+v)*sinThOmT + v*sinTh ) - T(2)*a*omSqrInv/om * (cosThOmT - cosTh);
+            this->F( S::X, S::A )     = omSqrInv * ( om*dT*sinThOmT + cosThOmT - cosTh );
+
+            this->F( S::Y, S::THETA ) = omSqrInv * ( a*om*dT*sinThOmT + v*om*(sinThOmT-sinTh) + a*(cosThOmT-cosTh) );
+            this->F( S::Y, S::V )     = 1/om * ( - (cosThOmT - cosTh) );
+            this->F( S::Y, S::OMEGA ) = omSqrInv * ( (a*dT+v)*(om*dT)*sinThOmT + (T(2)*a*dT+v)*cosThOmT - v*cosTh ) - T(2)*a*omSqrInv/om * (sinThOmT - sinTh);
+            this->F( S::Y, S::A )     = omSqrInv * ( -om*dT*cosThOmT + sinThOmT - sinTh );
+        }
+
+        this->F( S::X, S::THETA ) = -std::sin(x.theta())*x.v()*u.dt();
+        this->F( S::X, S::V )     = std::cos(x.theta()) * u.dt();
+        this->F( S::X, S::OMEGA ) = std::cos(x.theta()) * u.dt();
+        this->F( S::X, S::A )     = std::cos(x.theta()) * u.dt();
+
+        this->F( S::Y, S::THETA ) = -std::cos(x.theta())*x.v()*u.dt();
+        this->F( S::Y, S::V ) = std::sin(x.theta()) * u.dt();
+
+        this->F( S::THETA, S::OMEGA ) = u.dt();
+
+        this->F( S::V, S::A ) = u.dt();
+
+    }
 };
+
+} // namespace CTRA
 
 #endif
