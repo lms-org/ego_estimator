@@ -131,7 +131,6 @@ void EgoEstimator::computeMeasurement(){
     if(!sensors->hasSensor("HALL")) {
         logger.warn("hall") << "MISSING HALL SENSOR!";
         v = car->targetSpeed();
-        numVelocitySources++;
         vVar = config().get<float>("backup_vVar",1);
     } else {
         auto hall = sensors->sensor<sensor_utils::Odometer>("HALL");
