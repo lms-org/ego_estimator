@@ -169,8 +169,8 @@ void EgoEstimator::computeMeasurement(){
 
         // TODO: remove acceleration orientation hack
         omega = imu->gyroscope.z();
-        ax    = -GRAVITY*imu->accelerometer.x();
-        ay    = -GRAVITY*imu->accelerometer.y();
+        ax    = GRAVITY*imu->accelerometer.x();
+        ay    = GRAVITY*imu->accelerometer.y();
 
         omegaVar = imu->gyroscopeCovariance.zz();
         axVar    = GRAVITY*GRAVITY*imu->accelerometerCovariance.xx();
