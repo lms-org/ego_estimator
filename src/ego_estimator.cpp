@@ -129,6 +129,7 @@ void EgoEstimator::computeMeasurement(){
     if(!sensors->hasSensor("HALL")) {
         logger.warn("hall") << "MISSING HALL SENSOR!";
         v = car->targetSpeed();
+        numVelocitySources++;
         vVar = config().get<float>("backup_vVar",1);
     } else {
         auto hall = sensors->sensor<sensor_utils::Odometer>("HALL");
@@ -150,7 +151,7 @@ void EgoEstimator::computeMeasurement(){
         float steeringFront = car->steeringFront();
         float steeringRear = car->steeringRear();
         float radstand = config().get<float>("radstand",0.26);
-        float dt = (currentTimestamp-lastTimestamp).toFloat(); //TODO
+        const float dt = (currentTimestamp-lastTimestamp).toFloat(); //TODO
         float distance = v*dt;
         float angle = distance/radstand*sin(steeringFront-steeringRear)/cos(steeringRear);
         omega = angle/dt;
@@ -233,9 +234,7 @@ void EgoEstimator::computeMeasurement(){
     }
 }
 
-void EgoEstimator::computeFilterStep()
-{
-
+void EgoEstimator::computeFilterStep(){
     if( currentTimestamp == lms::Time::ZERO || lastTimestamp == lms::Time::ZERO ) {
         // No valid timestamps for prediction step
         // -> ignore
@@ -245,7 +244,7 @@ void EgoEstimator::computeFilterStep()
 
     // time since UKF was last called (parameter, masked as control input)
     auto delta = ( currentTimestamp - lastTimestamp );
-    if(delta < lms::Time::ZERO) {
+    if(delta <= lms::Time::ZERO) {
         logger.error("time") << "JUMPING BACKWARDS IN TIME!"
                              << " last = " << lastTimestamp
                              << " current = " << currentTimestamp
