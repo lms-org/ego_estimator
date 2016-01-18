@@ -41,6 +41,7 @@ protected:
     lms::ReadDataChannel<sensor_utils::SensorContainer> sensors;
     lms::WriteDataChannel<sensor_utils::Car> car;
 
+    sensor_utils::SensorHasUpdate sensorHasUpdate;
     Control u;
     Measurement z;
 

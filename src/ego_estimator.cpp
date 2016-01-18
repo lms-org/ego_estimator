@@ -30,6 +30,9 @@ bool EgoEstimator::initialize() {
         stateLogEnabled = false;
     }
 
+    //Add some sensorUpdate...
+    sensorHasUpdate.addSensor(sensor_utils::Sensor("IMU"));
+    sensorHasUpdate.addSensor(sensor_utils::Sensor("HALL"));
     return true;
 }
 
@@ -128,7 +131,7 @@ void EgoEstimator::computeMeasurement(){
     T vVar = 0;
     T omegaVar = 0;
 
-    if(!sensors->hasSensor("HALL")) {
+    if(!sensorHasUpdate.hasUpdate(*sensors->sensor<sensor_utils::Sensor>("HALL"))) {
         logger.warn("hall") << "MISSING HALL SENSOR!";
         v = car->targetSpeed();
         vVar = config().get<float>("backup_vVar",1);
@@ -144,7 +147,7 @@ void EgoEstimator::computeMeasurement(){
         vVar = hall->velocityCovariance.xx();
     }
 
-    if(!sensors->hasSensor("IMU")) {
+    if(!sensorHasUpdate.hasUpdate(*sensors->sensor<sensor_utils::Sensor>("IMU"))) {
         logger.warn("imu") << "MISSING IMU SENSOR!";
         // FALLBACK TO STEERING ANGLES FOR TURN RATE
         float steeringFront = car->steeringFront();
@@ -160,13 +163,6 @@ void EgoEstimator::computeMeasurement(){
         ayVar = 1;
     } else {
         auto imu = sensors->sensor<sensor_utils::IMU>("IMU");
-        auto imuTimestamp = imu->timestamp();
-
-        if( imuTimestamp <= lastTimestamp ) {
-            logger.warn("imu") << "No IMU measurement in current timestep";
-            //TODO error handling (may call !hasSensor code)
-        }
-
         // TODO: remove acceleration orientation hack
         omega = imu->gyroscope.z();
         ax    = GRAVITY*imu->accelerometer.x();
