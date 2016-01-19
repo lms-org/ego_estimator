@@ -272,7 +272,4 @@ void EgoEstimator::updateCarState(){
     car->updatePosition(lms::math::vertex2f(state.x(), state.y()), viewDir);
     car->updateVelocity(state.v(), viewDir);
     car->updateTurnRate(state.omega());
-    //TODO
-    car->localDx(0);
-    car->localDy(0);
 }
