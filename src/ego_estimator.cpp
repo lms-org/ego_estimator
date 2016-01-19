@@ -243,7 +243,7 @@ void EgoEstimator::computeFilterStep(){
     logger.debug("delta") << u.dt();
 
     auto previousState = filter.getState();
-
+    (void)previousState; //TODO
     // predict state for current time-step using the kalman filter
     filter.predict(sys, u);
     // perform measurement update
