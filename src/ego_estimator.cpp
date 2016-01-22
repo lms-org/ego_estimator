@@ -156,6 +156,7 @@ void EgoEstimator::computeMeasurement(){
         const float dt = (currentTimestamp-lastTimestamp).toFloat(); //TODO
         float distance = v*dt;
         float angle = distance/radstand*sin(steeringFront-steeringRear)/cos(steeringRear);
+        logger.error("agn")<< angle<<" "<<steeringRear<<steeringFront<<v;
         omega = angle/dt;
         omegaVar = config().get<float>("backup_omegaVar",1); //TODO set val
         //we don't acc
@@ -211,6 +212,19 @@ void EgoEstimator::computeMeasurement(){
 
     logger.debug("measurementVector") << std::endl << z;
     logger.debug("measurementCovariance") << std::endl << mm.getCovariance();
+    //Error checking
+    if(omega != omega){
+        throw std::runtime_error("omega is NAN");
+    }
+    if(ay != ay){
+        throw std::runtime_error("ay is NAN");
+    }
+    if(ax != ax){
+        throw std::runtime_error("ax is NAN");
+    }
+    if(v != v){
+        throw std::runtime_error("v is NAN");
+    }
 
     if(stateLogEnabled) {
         measurementLog << currentTimestamp.micros() << ","
