@@ -156,7 +156,6 @@ void EgoEstimator::computeMeasurement(){
         const float dt = (currentTimestamp-lastTimestamp).toFloat(); //TODO
         float distance = v*dt;
         float angle = distance/radstand*sin(steeringFront-steeringRear)/cos(steeringRear);
-        logger.error("agn")<< angle<<" "<<steeringRear<<steeringFront<<v;
         omega = angle/dt;
         omegaVar = config().get<float>("backup_omegaVar",1); //TODO set val
         //we don't acc
