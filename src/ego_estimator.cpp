@@ -157,10 +157,12 @@ void EgoEstimator::computeMeasurement(){
         float distance = v*dt;
         float angle = distance/radstand*sin(steeringFront-steeringRear)/cos(steeringRear);
         omega = angle/dt;
-        omegaVar = config().get<float>("backup_omegaVar",1); //TODO set val
+        omegaVar = config().get<float>("backup_omegaVar",0.025); //TODO set val
         //we don't acc
-        axVar = 1;
-        ayVar = 1;
+        axVar = 0.5;
+        ayVar = 1.5;
+        ax = 0;
+        ay = omega*v;
     } else {
         auto imu = sensors->sensor<sensor_utils::IMU>("IMU");
         // TODO: remove acceleration orientation hack
@@ -209,8 +211,8 @@ void EgoEstimator::computeMeasurement(){
     cov(Measurement::OMEGA, Measurement::OMEGA) = omegaVar;
     mm.setCovariance(cov);
 
-    logger.debug("measurementVector") << std::endl << z;
-    logger.debug("measurementCovariance") << std::endl << mm.getCovariance();
+    logger.debug("measurementVector") << z;
+    logger.debug("measurementCovariance") << mm.getCovariance();
     //Error checking
     if(omega != omega){
         throw std::runtime_error("omega is NAN");
@@ -222,6 +224,7 @@ void EgoEstimator::computeMeasurement(){
         throw std::runtime_error("ax is NAN");
     }
     if(v != v){
+
         throw std::runtime_error("v is NAN");
     }
 
@@ -264,8 +267,8 @@ void EgoEstimator::computeFilterStep(){
 
     const auto& state = filter.getState();
 
-    logger.debug("stateEstimate") << std::endl << state;
-    logger.debug("stateCovariance") << std::endl << filter.getCovariance();
+    logger.debug("newState") << state;
+    logger.debug("stateCovariance") <<filter.getCovariance();
 
     if(stateLogEnabled) {
         stateLog << currentTimestamp.micros() << ","
