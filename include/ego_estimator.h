@@ -52,6 +52,7 @@ protected:
 
     lms::Time lastTimestamp;
     lms::Time currentTimestamp;
+    lms::Time previousDelta;
 
     std::ofstream stateLog;
     std::ofstream measurementLog;

@@ -30,6 +30,8 @@ bool EgoEstimator::initialize() {
         stateLogEnabled = false;
     }
 
+    previousDelta = lms::Time::ZERO;
+
     //Add some sensorUpdate...
     sensorHasUpdate.addSensor(sensor_utils::Sensor("IMU"));
     sensorHasUpdate.addSensor(sensor_utils::Sensor("HALL"));
@@ -246,24 +248,41 @@ void EgoEstimator::computeFilterStep(){
 
 
     // time since UKF was last called (parameter, masked as control input)
-    auto delta = ( currentTimestamp - lastTimestamp );
-    if(delta <= lms::Time::ZERO) {
+    auto currentDelta = ( currentTimestamp - lastTimestamp );
+    if(currentDelta == lms::Time::ZERO) {
+        // Just predict using previous delta
+        logger.error("time") << "No Sensor Data "
+            << " last = " << lastTimestamp
+            << " current = " << currentTimestamp;
+
+    } else if( currentDelta < lms::Time::ZERO) {
         logger.error("time") << "JUMPING BACKWARDS IN TIME!"
-                             << " last = " << lastTimestamp
-                             << " current = " << currentTimestamp
-                             << " delta = " << delta;
+            << " last = " << lastTimestamp
+            << " current = " << currentTimestamp
+            << " delta = " << currentDelta;
         return;
     }
-    u.dt() = delta.toFloat();
 
-    logger.debug("delta") << u.dt();
+    logger.debug("delta") << "current: " << currentDelta << " previous: " << previousDelta;
 
-    auto previousState = filter.getState();
-    (void)previousState; //TODO
-    // predict state for current time-step using the kalman filter
-    filter.predict(sys, u);
-    // perform measurement update
-    filter.update(mm, z);
+    if(currentDelta == lms::Time::ZERO) {
+        u.dt() = previousDelta.toFloat();
+
+        // Prediction only
+        // predict state for current time-step using the kalman filter
+        filter.predict(sys, u);
+    } else {
+        u.dt() = currentDelta.toFloat();
+
+        // Prediction + update
+        // predict state for current time-step using the kalman filter
+        filter.predict(sys, u);
+        // perform measurement update
+        filter.update(mm, z);
+
+        // Update previous delta
+        previousDelta = currentDelta;
+    }
 
     const auto& state = filter.getState();
 
