@@ -52,8 +52,12 @@ bool EgoEstimator::cycle() {
 
     if(phoenixService.isValid()){
         if(phoenixService->rcStateChanged() || phoenixService->driveModeChanged()){
-            //reset TODO
+            //reset kalman
             initFilter();
+            //reset car
+            car->updatePosition(lms::math::vertex2f(0, 0), lms::math::vertex2f(1,0));
+            car->updateVelocity(0, lms::math::vertex2f(1,0));
+            car->updateTurnRate(0);
         }
     }else{
         logger.warn("cycle")<<" No pheonix-service available";

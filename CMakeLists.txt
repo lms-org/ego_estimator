@@ -20,4 +20,4 @@ include_directories(
 add_definitions(-DEIGEN_NO_DEBUG)
 
 add_library(ego_estimator MODULE ${SOURCES} ${HEADERS})
-target_link_libraries(ego_estimator PRIVATE lmscore math_lib sensor_utils)
+target_link_libraries(ego_estimator PRIVATE lmscore math_lib sensor_utils phoenix_CC2016_service)
