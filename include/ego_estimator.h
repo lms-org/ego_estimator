@@ -39,7 +39,7 @@ protected:
     void updateCarState();
 protected:
     lms::ReadDataChannel<sensor_utils::SensorContainer> sensors;
-    lms::WriteDataChannel<sensor_utils::Car> car;
+    lms::WriteDataChannel<street_environment::Car> car;
 
     sensor_utils::SensorHasUpdate sensorHasUpdate;
     Control u;
