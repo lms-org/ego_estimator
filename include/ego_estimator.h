@@ -5,7 +5,7 @@
 
 #include <lms/module.h>
 #include <sensor_utils/sensor.h>
-#include <sensor_utils/car.h>
+#include <street_environment/car.h>
 
 #include <kalman/UnscentedKalmanFilter.hpp>
 #include <kalman/ExtendedKalmanFilter.hpp>
