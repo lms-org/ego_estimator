@@ -181,6 +181,7 @@ void EgoEstimator::computeMeasurement(){
         ayVar = 1.5;
         ax = 0;
         ay = omega*v;
+
     } else {
         auto imu = sensors->sensor<sensor_utils::IMU>("IMU");
         // TODO: remove acceleration orientation hack
@@ -193,32 +194,13 @@ void EgoEstimator::computeMeasurement(){
         ayVar    = GRAVITY*GRAVITY*imu->accelerometerCovariance.yy();
     }
 
-    /*
-    // TODO: enable mouse sensors -> check if quality is high enough to be considered valid
-    if(!sensors->hasSensor("MOUSE_FRONT")) {
-        //logger.error("mouse_front") << "MISSING MOUSE_FRONT SENSOR!";
-    } else {
-        auto hall = sensors->sensor<sensor_utils::Odometer>("MOUSE_FRONT");
-
-        // TODO: Set Covariances
-        vMotion = hall->velocity.x();
-    }
-
-    if(!sensors->hasSensor("MOUSE_REAR")) {
-        //logger.error("mouse_front") << "MISSING MOUSE_FRONT SENSOR!";
-    } else {
-        auto hall = sensors->sensor<sensor_utils::Odometer>("MOUSE_REAR");
-
-        // TODO: Set Covariances
-        vMotion = hall->velocity.x();
-    }
-     */
-
     // Set actual measurement vector
+    //TODO fail, if v gets smaller, the filter fails!
     z.v() = v;
     z.ax() = ax;
     z.ay() = ay;
     z.omega() = omega;
+
 
     // Set measurement covariances
     Kalman::Covariance< Measurement > cov;
@@ -242,7 +224,6 @@ void EgoEstimator::computeMeasurement(){
         throw std::runtime_error("ax is NAN");
     }
     if(v != v){
-
         throw std::runtime_error("v is NAN");
     }
 
@@ -317,8 +298,24 @@ void EgoEstimator::computeFilterStep(){
     }
 }
 
+//float oldX;
 void EgoEstimator::updateCarState(){
     const auto& state = filter.getState();
+    /*
+    float diff = state.x()-oldX;
+    if(diff < 0){
+        logger.error("DISS-vor")<<oldX;
+        logger.error("DISS-jetzt") << currentTimestamp.micros() << ","
+                 << state.x() << ","
+                 << state.y() << ","
+                 << state.theta() << ","
+                 << state.v() << ","
+                 << state.omega() << ","
+                 << state.a()
+                 << std::endl;
+    }
+    oldX  =state.x();
+    */
     auto viewDir =lms::math::vertex2f(std::cos(state.theta()), std::sin(state.theta()));
     car->updatePosition(lms::math::vertex2f(state.x(), state.y()), viewDir);
     car->updateVelocity(state.v(), viewDir);
