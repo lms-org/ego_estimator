@@ -2,7 +2,7 @@
 
 #include <sensor_utils/imu.h>
 #include <sensor_utils/odometer.h>
-#include "phoenix_CC2016_service/phoenix_CC2016_service.h"
+//#include "phoenix_CC2016_service/phoenix_CC2016_service.h"
 
 #define GRAVITY T(9.81)
 
@@ -47,6 +47,7 @@ bool EgoEstimator::deinitialize() {
 }
 
 bool EgoEstimator::cycle() {
+    /*TODO
 
     lms::ServiceHandle<phoenix_CC2016_service::Phoenix_CC2016Service> phoenixService = getService<phoenix_CC2016_service::Phoenix_CC2016Service>("PHOENIX_SERVICE");
 
@@ -62,6 +63,7 @@ bool EgoEstimator::cycle() {
     }else{
         logger.warn("cycle")<<" No pheonix-service available";
     }
+    */
     //compute the timestamp
     computeTimeStamp();
     // Compute Measurement Update
