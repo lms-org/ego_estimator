@@ -150,7 +150,6 @@ void EgoEstimator::computeMeasurement(){
     T ayVar = 0;
     T vVar = 0;
     T omegaVar = 0;
-
     if(!sensorHasUpdate.hasUpdate(*sensors->sensor<sensor_utils::Sensor>("HALL"))) {
         logger.warn("hall") << "MISSING HALL SENSOR!";
         v = car->targetSpeed();
@@ -165,6 +164,7 @@ void EgoEstimator::computeMeasurement(){
         }
         v = hall->velocity.x();
         vVar = hall->velocityCovariance.xx();
+        logger.error("VVVV")<<v<<" "<<vVar;
     }
 
     if(!sensorHasUpdate.hasUpdate(*sensors->sensor<sensor_utils::Sensor>("IMU"))) {
@@ -173,7 +173,11 @@ void EgoEstimator::computeMeasurement(){
         float steeringFront = car->steeringFront();
         float steeringRear = car->steeringRear();
         float radstand = config().get<float>("radstand",0.26);
-        const float dt = (currentTimestamp-lastTimestamp).toFloat(); //TODO
+        float dt = (currentTimestamp-lastTimestamp).toFloat(); //TODO
+        if(dt == 0){
+            logger.warn("computeMeasurement")<<"dt is zero, setting it to 0.1";
+            dt = 0.1;
+        }
         float distance = v*dt;
         float angle = distance/radstand*sin(steeringFront-steeringRear)/cos(steeringRear);
         omega = angle/dt;
