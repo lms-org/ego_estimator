@@ -164,7 +164,6 @@ void EgoEstimator::computeMeasurement(){
         }
         v = hall->velocity.x();
         vVar = hall->velocityCovariance.xx();
-        logger.error("VVVV")<<v<<" "<<vVar;
     }
 
     if(!sensorHasUpdate.hasUpdate(*sensors->sensor<sensor_utils::Sensor>("IMU"))) {
