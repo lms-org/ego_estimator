@@ -253,7 +253,7 @@ void EgoEstimator::computeFilterStep(){
     auto currentDelta = ( currentTimestamp - lastTimestamp );
     if(currentDelta == lms::Time::ZERO) {
         // Just predict using previous delta
-        logger.error("time") << "No Sensor Data "
+        logger.warn("time") << "No Sensor Data "
             << " last = " << lastTimestamp
             << " current = " << currentTimestamp;
 
